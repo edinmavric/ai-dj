@@ -51,6 +51,7 @@ interface UseGameReturn {
   gameOver: GameOverMessage | null
   aiThinking: boolean
   gameMode: 'pve' | 'pvp' | null
+  pvpType: 'local' | 'online_ranked' | 'online_unranked' | null
   difficulty: number | null
   timeControl: TimeControlState | null
   playerOneUsername: string
@@ -77,6 +78,7 @@ export function useGame({ gameId, playerId: _playerId }: UseGameOptions): UseGam
   const [gameOver, setGameOver] = useState<GameOverMessage | null>(null)
   const [aiThinking, setAiThinking] = useState(false)
   const [gameMode, setGameMode] = useState<'pve' | 'pvp' | null>(null)
+  const [pvpType, setPvpType] = useState<'local' | 'online_ranked' | 'online_unranked' | null>(null)
   const [difficulty, setDifficulty] = useState<number | null>(null)
   const [timeControl, setTimeControl] = useState<TimeControlState | null>(null)
   const [playerOneUsername, setPlayerOneUsername] = useState<string>('Player 1')
@@ -160,10 +162,12 @@ export function useGame({ gameId, playerId: _playerId }: UseGameOptions): UseGam
   }, [gameState])
 
   // Determine if it's the player's turn
+  // For local PvP, it's always "the player's turn" since both players are on the same device
+  const isLocalPvP = gameMode === 'pvp' && pvpType === 'local'
   const isPlayerTurn =
     gameState !== null &&
     gameState.phase === 'playing' &&
-    gameState.current_player === 1 // Player is always player 1
+    (isLocalPvP || gameState.current_player === 1) // Player is always player 1, or both for local PvP
 
   // Connect to WebSocket on mount
   useEffect(() => {
@@ -234,9 +238,10 @@ export function useGame({ gameId, playerId: _playerId }: UseGameOptions): UseGam
     setValidMoves([])
     setIsLoading(false)
 
-    // Track game mode and difficulty
+    // Track game mode, pvp type, and difficulty
     const mode = msg.mode as 'pve' | 'pvp'
     setGameMode(mode)
+    setPvpType(msg.pvp_type || null)
     setDifficulty(msg.difficulty)
 
     // Track time control
@@ -653,6 +658,7 @@ export function useGame({ gameId, playerId: _playerId }: UseGameOptions): UseGam
     gameOver,
     aiThinking,
     gameMode,
+    pvpType,
     difficulty,
     timeControl,
     playerOneUsername,

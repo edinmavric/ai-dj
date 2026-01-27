@@ -1,0 +1,203 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
+  padding: 40px 20px;
+}
+
+.header {
+  max-width: 800px;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+
+.backLink {
+  display: inline-block;
+  color: #888;
+  text-decoration: none;
+  font-size: 0.875rem;
+  margin-bottom: 20px;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: #8b5cf6;
+}
+
+.title {
+  font-size: 2rem;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  color: #888;
+  margin: 0;
+}
+
+.loading,
+.error,
+.empty,
+.loginPrompt {
+  max-width: 400px;
+  margin: 100px auto;
+  text-align: center;
+  padding: 40px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  color: #888;
+}
+
+.error {
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.loginPrompt h2 {
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.loginLink,
+.playLink {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.loginLink:hover,
+.playLink:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+}
+
+.gameList {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gameCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gameCard:hover {
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateX(4px);
+}
+
+.gameCard:hover .replayHint {
+  opacity: 1;
+}
+
+.gameInfo {
+  flex: 1;
+}
+
+.gameMode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.modeLabel {
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.timeControl {
+  padding: 2px 8px;
+  background: rgba(139, 92, 246, 0.2);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #a78bfa;
+  text-transform: uppercase;
+}
+
+.opponent {
+  color: #888;
+  font-size: 0.875rem;
+  margin-bottom: 4px;
+}
+
+.details {
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.dot {
+  margin: 0 6px;
+}
+
+.gameResult {
+  text-align: right;
+  margin-right: 20px;
+}
+
+.resultBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.win {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.loss {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.date {
+  display: block;
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.replayHint {
+  color: #8b5cf6;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .gameCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .gameResult {
+    text-align: left;
+    margin-right: 0;
+  }
+
+  .replayHint {
+    opacity: 1;
+  }
+}

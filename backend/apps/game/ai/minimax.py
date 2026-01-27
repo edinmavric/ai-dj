@@ -16,7 +16,7 @@ class MinimaxAI(BaseAI):
     def get_name(self) -> str:
         return "Minimax"
 
-    def get_best_move(self, state: GameState) -> Optional[Move]:
+    def _calculate_best_move(self, state: GameState) -> Optional[Move]:
         """
         Find the best move using Minimax algorithm.
 

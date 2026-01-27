@@ -91,7 +91,7 @@ class MCTSAI(BaseAI):
         stats['simulations_run'] = self.simulations_run
         return stats
 
-    def get_best_move(self, state: GameState) -> Optional[Move]:
+    def _calculate_best_move(self, state: GameState) -> Optional[Move]:
         """
         Find the best move using MCTS.
 

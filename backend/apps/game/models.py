@@ -16,8 +16,9 @@ class GameSession(models.Model):
         PVE = 'pve', 'Player vs AI'
 
     class PvPType(models.TextChoices):
-        ONLINE = 'online', 'Online Ranked'    # Matchmaking, ELO counts
-        LOCAL = 'local', 'Local Unranked'     # Same device, no ELO
+        LOCAL = 'local', 'Local (Unranked)'           # Same device, no ELO
+        ONLINE_RANKED = 'online_ranked', 'Online Ranked'      # Matchmaking, ELO counts
+        ONLINE_UNRANKED = 'online_unranked', 'Online Unranked'  # Matchmaking, no ELO
 
     class GameStatus(models.TextChoices):
         WAITING = 'waiting', 'Waiting for Player'
@@ -40,11 +41,11 @@ class GameSession(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     mode = models.CharField(max_length=10, choices=GameMode.choices)
     pvp_type = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=PvPType.choices,
         null=True,
         blank=True,
-        help_text='For PvP games: online (ranked) or local (unranked)'
+        help_text='For PvP games: local, online_ranked, or online_unranked'
     )
     status = models.CharField(
         max_length=20,
@@ -146,9 +147,9 @@ class GameSession(models.Model):
         # PvE games always update PvE ELO
         if self.mode == self.GameMode.PVE:
             return True
-        # PvP games only update ELO if online (not local)
+        # PvP games only update ELO if online ranked
         if self.mode == self.GameMode.PVP:
-            return self.pvp_type == self.PvPType.ONLINE
+            return self.pvp_type == self.PvPType.ONLINE_RANKED
         return False
 
     def is_ranked(self) -> bool:

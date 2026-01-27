@@ -23,6 +23,7 @@ interface AuthContextType {
   logout: () => Promise<void>
   updateUser: (user: User) => void
   refreshToken: () => Promise<string | null>
+  refreshUserData: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -179,6 +180,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
     localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
   }, [])
 
+  // Refresh user data from server (to get updated ELO ratings, etc.)
+  const refreshUserData = useCallback(async () => {
+    if (!tokens?.access) return
+
+    try {
+      const response = await fetch(`${API_BASE}/users/profile/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${tokens.access}`,
+        },
+      })
+
+      if (!response.ok) {
+        // If 401, try refreshing token
+        if (response.status === 401) {
+          const newAccess = await refreshToken()
+          if (newAccess) {
+            // Retry with new token
+            const retryResponse = await fetch(`${API_BASE}/users/profile/`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${newAccess}`,
+              },
+            })
+            if (retryResponse.ok) {
+              const userData = await retryResponse.json()
+              updateUser(userData)
+            }
+          }
+        }
+        return
+      }
+
+      const userData = await response.json()
+      updateUser(userData)
+    } catch (error) {
+      console.error('Failed to refresh user data:', error)
+    }
+  }, [tokens, refreshToken, updateUser])
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user && !!tokens,
@@ -188,6 +231,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     updateUser,
     refreshToken,
+    refreshUserData,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

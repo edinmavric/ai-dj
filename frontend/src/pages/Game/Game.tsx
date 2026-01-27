@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { GameBoard, GameStatus, GameClock, CapturedPieces, MoveHistoryPanel, EloChangeDisplay, ChatPanel, ReplayControls } from '../../components/game'
+import { GameBoard, GameStatus, GameClock, CapturedPieces, MoveHistoryPanel, ChatPanel, ReplayControls, GameOverOverlay } from '../../components/game'
 import { ConnectionBanner } from '../../components/common'
 import { useGame } from '../../hooks/useGame'
 import { useSound } from '../../hooks/useSound'
@@ -24,6 +24,7 @@ export const Game: React.FC = () => {
     gameOver,
     aiThinking,
     gameMode,
+    pvpType,
     difficulty,
     timeControl,
     playerOneUsername,
@@ -59,6 +60,51 @@ export const Game: React.FC = () => {
   })
 
   const hasTimeControl = timeControl !== null
+
+  // Keyboard navigation for replay mode
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Only handle keys in replay mode, unless it's to enter replay mode
+    if (!replayState.isActive) {
+      // Enter replay mode with 'r' key when game is over
+      if (e.key === 'r' && gameOver && gameState?.move_history && gameState.move_history.length > 0) {
+        e.preventDefault()
+        enterReplayMode()
+      }
+      return
+    }
+
+    switch (e.key) {
+      case 'Escape':
+        e.preventDefault()
+        exitReplayMode()
+        break
+      case ' ':
+        e.preventDefault()
+        replayTogglePlay()
+        break
+      case 'ArrowLeft':
+        e.preventDefault()
+        replayPrev()
+        break
+      case 'ArrowRight':
+        e.preventDefault()
+        replayNext()
+        break
+      case 'Home':
+        e.preventDefault()
+        replayFirst()
+        break
+      case 'End':
+        e.preventDefault()
+        replayLast()
+        break
+    }
+  }, [replayState.isActive, gameOver, gameState?.move_history, enterReplayMode, exitReplayMode, replayTogglePlay, replayPrev, replayNext, replayFirst, replayLast])
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
 
   // Create a display game state that uses replay board when in replay mode
   const displayGameState = useMemo(() => {
@@ -135,6 +181,12 @@ export const Game: React.FC = () => {
     navigate('/')
   }
 
+  const isLocalPvP = gameMode === 'pvp' && pvpType === 'local'
+  const isOnlinePvP = gameMode === 'pvp' && pvpType !== 'local'
+
+  // Get the player's rating change
+  const playerRatingChange = gameOver?.rating_changes?.player_one || null
+
   return (
     <div className={styles.container}>
       <div className={styles.gameLayout}>
@@ -164,6 +216,7 @@ export const Game: React.FC = () => {
             isPlayerTurn={replayState.isActive ? false : isPlayerTurn}
             aiThinking={aiThinking}
             disableOverlays={replayState.isActive || !!gameOver}
+            isLocalPvP={gameMode === 'pvp' && pvpType === 'local'}
           />
 
           {/* Player Clock (Player 1) - Bottom */}
@@ -198,21 +251,11 @@ export const Game: React.FC = () => {
             playerTwoUsername={playerTwoUsername}
             isMuted={isMuted}
             onToggleSound={toggleMuted}
-            onForfeit={forfeit}
+            onForfeit={isLocalPvP || gameOver ? undefined : forfeit}
             onRematch={handleRematch}
             onNewGame={handleNewGame}
+            isLocalPvP={isLocalPvP}
           />
-
-          {/* ELO Rating Changes (for PvP) */}
-          {gameOver && gameMode === 'pvp' && (
-            <EloChangeDisplay
-              playerOneChange={gameOver.rating_changes?.player_one}
-              playerTwoChange={gameOver.rating_changes?.player_two}
-              playerOneUsername={playerOneUsername || 'Player 1'}
-              playerTwoUsername={playerTwoUsername || 'Player 2'}
-              isPvP={true}
-            />
-          )}
 
           {/* Replay Controls */}
           {replayState.isActive ? (
@@ -268,8 +311,8 @@ export const Game: React.FC = () => {
             onMoveClick={replayState.isActive ? replayGoTo : undefined}
           />
 
-          {/* Chat Panel (PvP only) */}
-          {gameMode === 'pvp' && (
+          {/* Chat Panel (Online PvP only - not local) */}
+          {isOnlinePvP && (
             <ChatPanel
               messages={chatMessages}
               onSendMessage={sendChatMessage}
@@ -291,6 +334,22 @@ export const Game: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Game Over Overlay */}
+      {gameOver && !replayState.isActive && (
+        <GameOverOverlay
+          gameOver={gameOver}
+          gameMode={gameMode || 'pve'}
+          pvpType={pvpType}
+          timeControl={timeControl?.category || null}
+          difficulty={difficulty || 1}
+          playerOneUsername={playerOneUsername}
+          playerTwoUsername={playerTwoUsername}
+          playerRatingChange={playerRatingChange}
+          onRematch={handleRematch}
+          onNewGame={handleNewGame}
+        />
+      )}
     </div>
   )
 }

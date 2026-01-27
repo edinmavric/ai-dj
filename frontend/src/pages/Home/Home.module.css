@@ -222,7 +222,19 @@
 .difficultyName {
   display: block;
   font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.difficultyRating {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #a78bfa;
   margin-bottom: 4px;
+}
+
+.difficultyButton.active .difficultyRating {
+  color: #c4b5fd;
 }
 
 .difficultyDesc {
@@ -370,12 +382,18 @@
 /* PvP Type Selection */
 .pvpTypeGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 500px) {
+  .pvpTypeGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pvpTypeButton {
-  padding: 16px;
+  padding: 12px 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -386,7 +404,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   position: relative;
 }
 
@@ -413,7 +431,7 @@
 
 .pvpTypeName {
   font-weight: bold;
-  font-size: 1rem;
+  font-size: 0.875rem;
 }
 
 .pvpTypeDesc {
@@ -434,19 +452,31 @@
   margin-top: 4px;
 }
 
-.pvpTypeButton:first-child .pvpTypeBadge {
+.badgeUnranked {
   background: rgba(100, 100, 100, 0.3);
   color: #888;
 }
 
-.pvpTypeButton:last-child .pvpTypeBadge {
+.badgeRanked {
   background: rgba(34, 197, 94, 0.2);
   color: #22c55e;
 }
 
-.pvpTypeButton.active:first-child .pvpTypeBadge {
+.pvpTypeButton.active .badgeUnranked {
   background: rgba(100, 100, 100, 0.4);
   color: #aaa;
+}
+
+.pvpTypeButton.active .badgeRanked {
+  background: rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+
+/* PvP Type Button variants */
+.pvpTypeLocal,
+.pvpTypeRanked,
+.pvpTypeCasual {
+  /* Base styles already in .pvpTypeButton */
 }
 
 .pvpTypeLock {

@@ -6,6 +6,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
+import MatchHistory from './pages/MatchHistory'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
             <Route path="/game/:gameId" element={<Game />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/profile/:userId" element={<Profile />} />
+            <Route path="/history" element={<MatchHistory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

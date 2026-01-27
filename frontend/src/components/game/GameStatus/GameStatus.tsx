@@ -15,16 +15,17 @@ interface GameStatusProps {
   playerTwoUsername?: string
   isMuted?: boolean
   onToggleSound?: () => void
-  onForfeit: () => void
+  onForfeit?: () => void
   onRematch: () => void
   onNewGame?: () => void
+  isLocalPvP?: boolean
 }
 
-const DIFFICULTY_NAMES: Record<number, { name: string; character: string }> = {
-  1: { name: 'Easy', character: 'Demogorgon' },
-  2: { name: 'Medium', character: 'Alpha AI' },
-  3: { name: 'Hard', character: 'Shadow Monster' },
-  4: { name: 'Nightmare', character: 'Mind Flayer' },
+const DIFFICULTY_NAMES: Record<number, { name: string; character: string; rating: number }> = {
+  1: { name: 'Easy', character: 'Demogorgon', rating: 600 },
+  2: { name: 'Medium', character: 'Alpha AI', rating: 1000 },
+  3: { name: 'Hard', character: 'Shadow Monster', rating: 1400 },
+  4: { name: 'Nightmare', character: 'Mind Flayer', rating: 1800 },
 }
 
 export const GameStatus: React.FC<GameStatusProps> = ({
@@ -41,6 +42,7 @@ export const GameStatus: React.FC<GameStatusProps> = ({
   onForfeit,
   onRematch,
   onNewGame,
+  isLocalPvP = false,
 }) => {
   const isPvP = gameMode === 'pvp'
   const difficultyInfo = DIFFICULTY_NAMES[difficulty] || DIFFICULTY_NAMES[1]
@@ -73,10 +75,13 @@ export const GameStatus: React.FC<GameStatusProps> = ({
     if (isPvP) {
       return 'Player vs Player'
     }
-    return `${difficultyInfo.name} - ${difficultyInfo.character}`
+    return `${difficultyInfo.character} (${difficultyInfo.rating})`
   }
 
   const getOpponentLabel = (): string => {
+    if (!isPvP) {
+      return `${difficultyInfo.character} (${difficultyInfo.rating})`
+    }
     return p2Name
   }
 
@@ -120,24 +125,16 @@ export const GameStatus: React.FC<GameStatusProps> = ({
         <span className={styles.turn}>Turn {gameState.turn_number}</span>
       </div>
 
-      <div className={styles.actions}>
-        {gameOver ? (
-          <>
-            <button className={styles.rematchButton} onClick={onRematch}>
-              Rematch
+      {/* Actions - hide during game over (overlay handles it) */}
+      {!gameOver && (
+        <div className={styles.actions}>
+          {onForfeit && !isLocalPvP && (
+            <button className={styles.forfeitButton} onClick={onForfeit}>
+              Forfeit
             </button>
-            {onNewGame && (
-              <button className={styles.newGameButton} onClick={onNewGame}>
-                New Game
-              </button>
-            )}
-          </>
-        ) : (
-          <button className={styles.forfeitButton} onClick={onForfeit}>
-            Forfeit
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

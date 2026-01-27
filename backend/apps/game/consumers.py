@@ -222,7 +222,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                         'data': {
                             'winner': ai_result.get('winner'),
                             'ai_won': ai_result.get('ai_won', False),
-                            'reason': reason
+                            'reason': reason,
+                            'rating_changes': ai_result.get('rating_changes')
                         }
                     }
                 )
@@ -487,6 +488,7 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 'game_state': game.game_state,
                 'status': game.status,
                 'mode': game.mode,
+                'pvp_type': game.pvp_type,
                 'difficulty': game.difficulty,
                 'player_one_id': str(game.player_one.id) if game.player_one else None,
                 'player_two_id': str(game.player_two.id) if game.player_two else None,
@@ -806,6 +808,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 game.move_history.append(ai_move.to_dict())
                 game.save()
 
+                # Update ELO ratings if game ended
+                rating_changes = None
+                if game_over:
+                    rating_changes = update_ratings_for_game(game)
+
                 return {
                     'success': True,
                     'move': ai_move.to_dict(),
@@ -817,7 +824,8 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     'captured_all': captured_all,
                     'player_one_time_ms': player_one_time,
                     'player_two_time_ms': player_two_time,
-                    'clock_running': game.clock_running and not game_over
+                    'clock_running': game.clock_running and not game_over,
+                    'rating_changes': rating_changes
                 }
         except GameSession.DoesNotExist:
             return {'success': False, 'message': 'Game not found'}
@@ -909,4 +917,268 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 'mode': new_game.mode,
             }
         except GameSession.DoesNotExist:
+            return None
+
+
+# In-memory storage for lobby data (in production, use Redis)
+lobby_users = {}  # {channel_name: {'user_id': str, 'username': str, 'rating': int}}
+matchmaking_queues = {
+    'online_ranked': [],   # List of {channel_name, user_id, username, rating, time_control}
+    'online_unranked': [], # List of {channel_name, user_id, username, time_control}
+}
+
+
+class LobbyConsumer(AsyncJsonWebsocketConsumer):
+    """WebSocket consumer for lobby, online players, and matchmaking."""
+
+    LOBBY_GROUP = 'lobby_main'
+
+    async def connect(self):
+        """Handle lobby connection."""
+        self.user = self.scope.get('user')
+
+        # Must be authenticated to use lobby
+        if not self.user or not self.user.is_authenticated:
+            await self.close()
+            return
+
+        await self.channel_layer.group_add(
+            self.LOBBY_GROUP,
+            self.channel_name
+        )
+
+        await self.accept()
+
+        # Add user to online list
+        user_data = await self.get_user_data()
+        lobby_users[self.channel_name] = user_data
+
+        # Broadcast updated online list to all users
+        await self.broadcast_online_players()
+
+        # Send current online list to the connected user
+        await self.send_json({
+            'type': 'online_players',
+            'data': {
+                'players': list(lobby_users.values()),
+                'count': len(lobby_users)
+            }
+        })
+
+    async def disconnect(self, close_code):
+        """Handle lobby disconnection."""
+        # Remove from online list
+        if self.channel_name in lobby_users:
+            del lobby_users[self.channel_name]
+
+        # Remove from matchmaking queues
+        for queue_type in matchmaking_queues:
+            matchmaking_queues[queue_type] = [
+                p for p in matchmaking_queues[queue_type]
+                if p['channel_name'] != self.channel_name
+            ]
+
+        # Leave lobby group
+        await self.channel_layer.group_discard(
+            self.LOBBY_GROUP,
+            self.channel_name
+        )
+
+        # Broadcast updated online list
+        await self.broadcast_online_players()
+
+    async def receive_json(self, content):
+        """Handle incoming messages."""
+        msg_type = content.get('type')
+
+        if msg_type == 'join_queue':
+            await self.handle_join_queue(content.get('data', {}))
+        elif msg_type == 'leave_queue':
+            await self.handle_leave_queue()
+        elif msg_type == 'get_online_players':
+            await self.send_json({
+                'type': 'online_players',
+                'data': {
+                    'players': list(lobby_users.values()),
+                    'count': len(lobby_users)
+                }
+            })
+
+    async def handle_join_queue(self, data):
+        """Handle joining matchmaking queue."""
+        queue_type = data.get('pvp_type', 'online_ranked')
+        time_control = data.get('time_control', 'unlimited')
+        initial_time = data.get('initial_time_seconds', 0)
+        increment = data.get('increment_seconds', 0)
+
+        if queue_type not in matchmaking_queues:
+            await self.send_json({
+                'type': 'error',
+                'data': {'message': 'Invalid queue type'}
+            })
+            return
+
+        # Remove from any existing queue first
+        for qt in matchmaking_queues:
+            matchmaking_queues[qt] = [
+                p for p in matchmaking_queues[qt]
+                if p['channel_name'] != self.channel_name
+            ]
+
+        # Add to queue
+        user_data = await self.get_user_data()
+        queue_entry = {
+            'channel_name': self.channel_name,
+            'user_id': user_data['user_id'],
+            'username': user_data['username'],
+            'rating': user_data.get('rating', 1200),
+            'time_control': time_control,
+            'initial_time_seconds': initial_time,
+            'increment_seconds': increment,
+        }
+        matchmaking_queues[queue_type].append(queue_entry)
+
+        # Send queue confirmation
+        await self.send_json({
+            'type': 'queue_joined',
+            'data': {
+                'queue_type': queue_type,
+                'position': len(matchmaking_queues[queue_type]),
+                'players_waiting': len(matchmaking_queues[queue_type])
+            }
+        })
+
+        # Try to find a match
+        await self.try_match(queue_type)
+
+    async def handle_leave_queue(self):
+        """Handle leaving matchmaking queue."""
+        for queue_type in matchmaking_queues:
+            matchmaking_queues[queue_type] = [
+                p for p in matchmaking_queues[queue_type]
+                if p['channel_name'] != self.channel_name
+            ]
+
+        await self.send_json({
+            'type': 'queue_left',
+            'data': {}
+        })
+
+    async def try_match(self, queue_type: str):
+        """Try to match players in the queue."""
+        queue = matchmaking_queues[queue_type]
+
+        # Simple matching: pair first two players with same time control
+        if len(queue) < 2:
+            return
+
+        # Group by time control
+        by_time_control = {}
+        for player in queue:
+            key = (player['time_control'], player.get('initial_time_seconds', 0), player.get('increment_seconds', 0))
+            if key not in by_time_control:
+                by_time_control[key] = []
+            by_time_control[key].append(player)
+
+        # Find a match
+        for (tc, initial, increment), players in by_time_control.items():
+            if len(players) >= 2:
+                player1 = players[0]
+                player2 = players[1]
+
+                # Remove matched players from queue
+                matchmaking_queues[queue_type] = [
+                    p for p in matchmaking_queues[queue_type]
+                    if p['channel_name'] not in [player1['channel_name'], player2['channel_name']]
+                ]
+
+                # Create the game
+                game_data = await self.create_pvp_game(player1, player2, queue_type, tc, initial, increment)
+
+                if game_data:
+                    # Notify both players
+                    for player in [player1, player2]:
+                        await self.channel_layer.send(
+                            player['channel_name'],
+                            {
+                                'type': 'match_found',
+                                'game_id': str(game_data['id']),
+                                'opponent': player2['username'] if player == player1 else player1['username'],
+                            }
+                        )
+                break
+
+    async def match_found(self, event):
+        """Handle match found message."""
+        await self.send_json({
+            'type': 'match_found',
+            'data': {
+                'game_id': event['game_id'],
+                'opponent': event['opponent']
+            }
+        })
+
+    async def broadcast_online_players(self):
+        """Broadcast online players list to all lobby users."""
+        await self.channel_layer.group_send(
+            self.LOBBY_GROUP,
+            {
+                'type': 'online_players_update',
+                'players': list(lobby_users.values()),
+                'count': len(lobby_users)
+            }
+        )
+
+    async def online_players_update(self, event):
+        """Handle online players update broadcast."""
+        await self.send_json({
+            'type': 'online_players',
+            'data': {
+                'players': event['players'],
+                'count': event['count']
+            }
+        })
+
+    @database_sync_to_async
+    def get_user_data(self) -> dict:
+        """Get user data for lobby display."""
+        if not self.user or not self.user.is_authenticated:
+            return {'user_id': None, 'username': 'Anonymous', 'rating': 1200}
+
+        return {
+            'user_id': str(self.user.id),
+            'username': self.user.username,
+            'rating': getattr(self.user, 'elo_rating', 1200),
+        }
+
+    @database_sync_to_async
+    def create_pvp_game(self, player1: dict, player2: dict, pvp_type: str, time_control: str, initial_time: int, increment: int) -> Optional[dict]:
+        """Create a new PvP game for matched players."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        try:
+            user1 = User.objects.get(id=player1['user_id'])
+            user2 = User.objects.get(id=player2['user_id'])
+
+            initial_state = GameState.create_initial_state(board_size=5)
+
+            game = GameSession.objects.create(
+                player_one=user1,
+                player_two=user2,
+                mode=GameSession.GameMode.PVP,
+                pvp_type=pvp_type,
+                status=GameSession.GameStatus.IN_PROGRESS,
+                board_size=5,
+                time_control=time_control,
+                initial_time_seconds=initial_time,
+                increment_seconds=increment,
+                player_one_time_ms=initial_time * 1000 if time_control != 'unlimited' else None,
+                player_two_time_ms=initial_time * 1000 if time_control != 'unlimited' else None,
+                game_state=initial_state.to_dict(),
+            )
+
+            return {'id': game.id}
+        except Exception as e:
+            logger.error(f"Failed to create PvP game: {e}")
             return None

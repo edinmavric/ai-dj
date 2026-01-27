@@ -28,7 +28,7 @@ class AlphaBetaAI(BaseAI):
         stats['pruned_nodes'] = self.pruned_nodes
         return stats
 
-    def get_best_move(self, state: GameState) -> Optional[Move]:
+    def _calculate_best_move(self, state: GameState) -> Optional[Move]:
         """
         Find the best move using Alpha-Beta pruning.
 

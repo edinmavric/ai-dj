@@ -32,9 +32,12 @@ export interface GameStateMessage {
   game_state: GameState
   status: string
   mode: string
+  pvp_type: 'local' | 'online_ranked' | 'online_unranked' | null
   difficulty: number | null
   player_one_id: string | null
   player_two_id: string | null
+  player_one_username?: string
+  player_two_username?: string
 }
 
 export interface GameUpdateMessage {

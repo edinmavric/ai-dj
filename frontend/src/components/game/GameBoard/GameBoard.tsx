@@ -12,6 +12,7 @@ interface GameBoardProps {
   isPlayerTurn: boolean
   aiThinking?: boolean
   disableOverlays?: boolean  // Disable all overlays (for replay mode, game over)
+  isLocalPvP?: boolean  // Local PvP mode (same device, no waiting overlay)
 }
 
 export const GameBoard: React.FC<GameBoardProps> = ({
@@ -22,6 +23,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   isPlayerTurn,
   aiThinking = false,
   disableOverlays = false,
+  isLocalPvP = false,
 }) => {
   const { board } = gameState
 
@@ -74,8 +76,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     .join(' ')
 
   // Show overlays only when not disabled (not in replay mode, not game over)
+  // Don't show waiting overlay for local PvP (same device, both players take turns)
   const showAiThinkingOverlay = aiThinking && !disableOverlays
-  const showWaitingOverlay = !isPlayerTurn && !aiThinking && !disableOverlays
+  const showWaitingOverlay = !isPlayerTurn && !aiThinking && !disableOverlays && !isLocalPvP
 
   return (
     <div className={styles.boardContainer}>

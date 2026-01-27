@@ -11,11 +11,12 @@ from typing import Tuple, Optional
 
 
 # AI difficulty to ELO rating mapping (for PvE games)
+# Ratings adjusted to match AI strength with blunder chances
 AI_RATINGS = {
-    1: 800,    # Easy - Demogorgon
-    2: 1200,   # Medium - Alpha AI
-    3: 1600,   # Hard - Shadow Monster
-    4: 2000,   # Nightmare - Mind Flayer
+    1: 600,    # Easy - Demogorgon (40% blunder chance)
+    2: 1000,   # Medium - Alpha AI (20% blunder chance)
+    3: 1400,   # Hard - Shadow Monster (8% blunder chance)
+    4: 1800,   # Nightmare - Mind Flayer (2% blunder chance)
 }
 
 

@@ -63,11 +63,11 @@ export interface TimeControlPresets {
   rapid: TimeControlPreset[]
 }
 
-export type PvPType = 'online' | 'local'
+export type PvPType = 'local' | 'online_ranked' | 'online_unranked'
 
 export interface CreateGameOptions {
   mode: GameMode
-  pvp_type?: PvPType  // For PvP: 'online' (ranked) or 'local' (unranked)
+  pvp_type?: PvPType  // For PvP: 'local', 'online_ranked', or 'online_unranked'
   difficulty?: DifficultyLevel
   board_size: number
   time_control?: TimeControlCategory

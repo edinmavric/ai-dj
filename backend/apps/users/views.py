@@ -205,11 +205,15 @@ class LeaderboardView(APIView):
         if game_mode == 'pve':
             elo_field = f'elo_{category}_pve'
             games_field = f'{category}_pve_games_count'
+            total_games_field = 'pve_games_played'
+            total_wins_field = 'pve_games_won'
         else:
             elo_field = f'elo_{category}'
             games_field = f'{category}_games_count'
+            total_games_field = 'games_played'
+            total_wins_field = 'games_won'
 
-        # Get top 100 players
+        # Get top 100 players ordered by ELO for this category
         users = User.objects.filter(
             is_active=True
         ).order_by(f'-{elo_field}')[:100]
@@ -217,12 +221,27 @@ class LeaderboardView(APIView):
         # Add rank to each user
         result = []
         for rank, user in enumerate(users, start=1):
-            data = LeaderboardSerializer(user).data
-            data['rank'] = rank
-            data['elo'] = getattr(user, elo_field)
-            data['games_played'] = getattr(user, games_field)
-            data['game_mode'] = game_mode
-            result.append(data)
+            elo = getattr(user, elo_field)
+            games_in_category = getattr(user, games_field)
+            total_games = getattr(user, total_games_field)
+            total_wins = getattr(user, total_wins_field)
+
+            # Calculate win rate from total mode stats
+            win_rate = (total_wins / total_games * 100) if total_games > 0 else 0
+
+            result.append({
+                'rank': rank,
+                'id': str(user.id),
+                'username': user.username,
+                'avatar': user.avatar.url if user.avatar else None,
+                'country': user.country,
+                'elo': elo,
+                'games_played': games_in_category,
+                'games_won': total_wins,
+                'win_rate': round(win_rate, 1),
+                'game_mode': game_mode,
+                'time_control': category,
+            })
 
         return Response(result)
 

@@ -1,0 +1,122 @@
+/**
+ * Hook for managing lobby connection, online players, and matchmaking.
+ */
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { lobbyClient, OnlinePlayer, MatchFoundData, QueueJoinedData, OnlinePlayersData } from '../websocket/lobbyClient'
+
+interface QueueState {
+  inQueue: boolean
+  queueType: string | null
+  position: number
+  playersWaiting: number
+}
+
+interface UseLobbyReturn {
+  isConnected: boolean
+  onlinePlayers: OnlinePlayer[]
+  onlineCount: number
+  queueState: QueueState
+  matchFound: MatchFoundData | null
+  joinQueue: (pvpType: string, timeControl: string, initialTimeSeconds: number, incrementSeconds: number) => void
+  leaveQueue: () => void
+  clearMatchFound: () => void
+}
+
+export function useLobby(autoConnect = true): UseLobbyReturn {
+  const [isConnected, setIsConnected] = useState(false)
+  const [onlinePlayers, setOnlinePlayers] = useState<OnlinePlayer[]>([])
+  const [onlineCount, setOnlineCount] = useState(0)
+  const [queueState, setQueueState] = useState<QueueState>({
+    inQueue: false,
+    queueType: null,
+    position: 0,
+    playersWaiting: 0,
+  })
+  const [matchFound, setMatchFound] = useState<MatchFoundData | null>(null)
+
+  const unsubscribesRef = useRef<(() => void)[]>([])
+
+  useEffect(() => {
+    if (!autoConnect) return
+
+    const connectAndSubscribe = async () => {
+      try {
+        await lobbyClient.connect()
+
+        unsubscribesRef.current = [
+          lobbyClient.onConnectionChange((connected) => {
+            setIsConnected(connected)
+          }),
+          lobbyClient.on('online_players', (data) => {
+            const playersData = data as OnlinePlayersData
+            setOnlinePlayers(playersData.players)
+            setOnlineCount(playersData.count)
+          }),
+          lobbyClient.on('queue_joined', (data) => {
+            const queueData = data as QueueJoinedData
+            setQueueState({
+              inQueue: true,
+              queueType: queueData.queue_type,
+              position: queueData.position,
+              playersWaiting: queueData.players_waiting,
+            })
+          }),
+          lobbyClient.on('queue_left', () => {
+            setQueueState({
+              inQueue: false,
+              queueType: null,
+              position: 0,
+              playersWaiting: 0,
+            })
+          }),
+          lobbyClient.on('match_found', (data) => {
+            const matchData = data as MatchFoundData
+            setMatchFound(matchData)
+            setQueueState({
+              inQueue: false,
+              queueType: null,
+              position: 0,
+              playersWaiting: 0,
+            })
+          }),
+        ]
+
+        setIsConnected(true)
+      } catch (error) {
+        console.error('Failed to connect to lobby:', error)
+        setIsConnected(false)
+      }
+    }
+
+    connectAndSubscribe()
+
+    return () => {
+      unsubscribesRef.current.forEach((unsub) => unsub())
+      unsubscribesRef.current = []
+      lobbyClient.disconnect()
+    }
+  }, [autoConnect])
+
+  const joinQueue = useCallback((pvpType: string, timeControl: string, initialTimeSeconds: number, incrementSeconds: number) => {
+    lobbyClient.joinQueue(pvpType, timeControl, initialTimeSeconds, incrementSeconds)
+  }, [])
+
+  const leaveQueue = useCallback(() => {
+    lobbyClient.leaveQueue()
+  }, [])
+
+  const clearMatchFound = useCallback(() => {
+    setMatchFound(null)
+  }, [])
+
+  return {
+    isConnected,
+    onlinePlayers,
+    onlineCount,
+    queueState,
+    matchFound,
+    joinQueue,
+    leaveQueue,
+    clearMatchFound,
+  }
+}

@@ -23,6 +23,7 @@ class DifficultyManager:
             'algorithm': 'minimax',
             'depth': AI_DEPTH_CONFIG[1]['minimax_depth'],
             'iterations': AI_DEPTH_CONFIG[1]['mcts_iterations'],
+            'blunder_chance': AI_DEPTH_CONFIG[1].get('blunder_chance', 0.0),
             'character': AI_CHARACTERS[1],
             'description': 'Basic strategic play - The Demogorgon awakens'
         },
@@ -30,6 +31,7 @@ class DifficultyManager:
             'algorithm': 'alpha_beta',
             'depth': AI_DEPTH_CONFIG[2]['minimax_depth'],
             'iterations': AI_DEPTH_CONFIG[2]['mcts_iterations'],
+            'blunder_chance': AI_DEPTH_CONFIG[2].get('blunder_chance', 0.0),
             'character': AI_CHARACTERS[2],
             'description': 'Improved lookahead - Alpha predator mode'
         },
@@ -37,6 +39,7 @@ class DifficultyManager:
             'algorithm': 'alpha_beta',
             'depth': AI_DEPTH_CONFIG[3]['minimax_depth'],
             'iterations': AI_DEPTH_CONFIG[3]['mcts_iterations'],
+            'blunder_chance': AI_DEPTH_CONFIG[3].get('blunder_chance', 0.0),
             'character': AI_CHARACTERS[3],
             'description': 'Deep analysis - Shadow Monster emerges'
         },
@@ -44,6 +47,7 @@ class DifficultyManager:
             'algorithm': 'mcts',
             'depth': AI_DEPTH_CONFIG[4]['minimax_depth'],
             'iterations': AI_DEPTH_CONFIG[4]['mcts_iterations'],
+            'blunder_chance': AI_DEPTH_CONFIG[4].get('blunder_chance', 0.0),
             'character': AI_CHARACTERS[4],
             'description': 'Near-optimal play - The Mind Flayer controls all'
         }
@@ -70,16 +74,17 @@ class DifficultyManager:
         )
 
         algorithm = config['algorithm']
+        blunder_chance = config.get('blunder_chance', 0.0)
 
         if algorithm == 'minimax':
-            return MinimaxAI(depth=config['depth'])
+            return MinimaxAI(depth=config['depth'], blunder_chance=blunder_chance)
         elif algorithm == 'alpha_beta':
-            return AlphaBetaAI(depth=config['depth'])
+            return AlphaBetaAI(depth=config['depth'], blunder_chance=blunder_chance)
         elif algorithm == 'mcts':
-            return MCTSAI(iterations=config['iterations'])
+            return MCTSAI(iterations=config['iterations'], blunder_chance=blunder_chance)
         else:
             # Default fallback
-            return AlphaBetaAI(depth=4)
+            return AlphaBetaAI(depth=4, blunder_chance=blunder_chance)
 
     @classmethod
     def get_difficulty_info(cls, difficulty: int) -> dict:

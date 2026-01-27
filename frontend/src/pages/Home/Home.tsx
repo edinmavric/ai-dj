@@ -1,13 +1,15 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '../../components/common'
+import { OnlinePlayersPanel, MatchmakingQueue } from '../../components/lobby'
 import { useAuth } from '../../contexts/AuthContext'
+import { useLobby } from '../../hooks/useLobby'
 import { api } from '../../api'
 import { TimeControlCategory, DifficultyLevel, GameMode } from '../../types/game'
 import styles from './Home.module.css'
 
 type BoardSize = 5 | 6 | 7 | 8
-type PvPType = 'online' | 'local'
+type PvPType = 'local' | 'online_ranked' | 'online_unranked'
 
 interface TimePreset {
   name: string
@@ -34,16 +36,16 @@ const TIME_PRESETS: Record<Exclude<TimeControlCategory, 'unlimited'>, TimePreset
   ],
 }
 
-const DIFFICULTIES: Array<{ value: DifficultyLevel; name: string; description: string }> = [
-  { value: 1, name: 'Easy', description: 'Demogorgon' },
-  { value: 2, name: 'Medium', description: 'Alpha AI' },
-  { value: 3, name: 'Hard', description: 'Shadow Monster' },
-  { value: 4, name: 'Nightmare', description: 'Mind Flayer' },
+const DIFFICULTIES: Array<{ value: DifficultyLevel; name: string; character: string; rating: number }> = [
+  { value: 1, name: 'Easy', character: 'Demogorgon', rating: 600 },
+  { value: 2, name: 'Medium', character: 'Alpha AI', rating: 1000 },
+  { value: 3, name: 'Hard', character: 'Shadow Monster', rating: 1400 },
+  { value: 4, name: 'Nightmare', character: 'Mind Flayer', rating: 1800 },
 ]
 
 export const Home: React.FC = () => {
   const navigate = useNavigate()
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, logout, refreshUserData } = useAuth()
   const [mode, setMode] = useState<GameMode>('pve')
   const [pvpType, setPvpType] = useState<PvPType>('local')
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(1)
@@ -52,6 +54,25 @@ export const Home: React.FC = () => {
   const [selectedPreset, setSelectedPreset] = useState<TimePreset | null>(TIME_PRESETS.blitz[2]) // 5 min default
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Lobby hook for online matchmaking (only connect when authenticated)
+  const {
+    isConnected: lobbyConnected,
+    onlinePlayers,
+    onlineCount,
+    queueState,
+    matchFound,
+    joinQueue,
+    leaveQueue,
+    clearMatchFound,
+  } = useLobby(isAuthenticated)
+
+  // Refresh user data on mount (to get updated ELO after games)
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshUserData()
+    }
+  }, [isAuthenticated, refreshUserData])
 
   const handleLogout = async () => {
     await logout()
@@ -95,7 +116,19 @@ export const Home: React.FC = () => {
     return prefix + 'ELO: '
   }
 
+  const handleJoinQueue = useCallback(() => {
+    joinQueue(pvpType, timeCategory, selectedPreset?.initial || 0, selectedPreset?.increment || 0)
+  }, [joinQueue, pvpType, timeCategory, selectedPreset])
+
+  const isOnlinePvP = mode === 'pvp' && (pvpType === 'online_ranked' || pvpType === 'online_unranked')
+
   const handleStartGame = async () => {
+    // For online PvP, use matchmaking
+    if (isOnlinePvP) {
+      handleJoinQueue()
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
@@ -126,9 +159,14 @@ export const Home: React.FC = () => {
           Leaderboard
         </Link>
         {isAuthenticated && user && (
-          <Link to={`/profile/${user.id}`} className={styles.navLink}>
-            My Profile
-          </Link>
+          <>
+            <Link to="/history" className={styles.navLink}>
+              Match History
+            </Link>
+            <Link to={`/profile/${user.id}`} className={styles.navLink}>
+              My Profile
+            </Link>
+          </>
         )}
       </nav>
 
@@ -196,22 +234,33 @@ export const Home: React.FC = () => {
               <label className={styles.label}>PvP Type</label>
               <div className={styles.pvpTypeGrid}>
                 <button
-                  className={`${styles.pvpTypeButton} ${pvpType === 'local' ? styles.active : ''}`}
+                  className={`${styles.pvpTypeButton} ${styles.pvpTypeLocal} ${pvpType === 'local' ? styles.active : ''}`}
                   onClick={() => setPvpType('local')}
                 >
                   <span className={styles.pvpTypeName}>Local</span>
-                  <span className={styles.pvpTypeDesc}>Same device, take turns</span>
-                  <span className={styles.pvpTypeBadge}>Unranked</span>
+                  <span className={styles.pvpTypeDesc}>Same device</span>
+                  <span className={`${styles.pvpTypeBadge} ${styles.badgeUnranked}`}>Unranked</span>
                 </button>
                 <button
-                  className={`${styles.pvpTypeButton} ${pvpType === 'online' ? styles.active : ''} ${!isAuthenticated ? styles.disabled : ''}`}
-                  onClick={() => isAuthenticated && setPvpType('online')}
+                  className={`${styles.pvpTypeButton} ${styles.pvpTypeRanked} ${pvpType === 'online_ranked' ? styles.active : ''} ${!isAuthenticated ? styles.disabled : ''}`}
+                  onClick={() => isAuthenticated && setPvpType('online_ranked')}
                   disabled={!isAuthenticated}
                   title={!isAuthenticated ? 'Login required for ranked games' : undefined}
                 >
-                  <span className={styles.pvpTypeName}>Online</span>
-                  <span className={styles.pvpTypeDesc}>Find opponent by ELO</span>
-                  <span className={styles.pvpTypeBadge}>Ranked</span>
+                  <span className={styles.pvpTypeName}>Online Ranked</span>
+                  <span className={styles.pvpTypeDesc}>ELO matchmaking</span>
+                  <span className={`${styles.pvpTypeBadge} ${styles.badgeRanked}`}>Ranked</span>
+                  {!isAuthenticated && <span className={styles.pvpTypeLock}>Login required</span>}
+                </button>
+                <button
+                  className={`${styles.pvpTypeButton} ${styles.pvpTypeCasual} ${pvpType === 'online_unranked' ? styles.active : ''} ${!isAuthenticated ? styles.disabled : ''}`}
+                  onClick={() => isAuthenticated && setPvpType('online_unranked')}
+                  disabled={!isAuthenticated}
+                  title={!isAuthenticated ? 'Login required for online games' : undefined}
+                >
+                  <span className={styles.pvpTypeName}>Online Casual</span>
+                  <span className={styles.pvpTypeDesc}>Play for fun</span>
+                  <span className={`${styles.pvpTypeBadge} ${styles.badgeUnranked}`}>Unranked</span>
                   {!isAuthenticated && <span className={styles.pvpTypeLock}>Login required</span>}
                 </button>
               </div>
@@ -266,7 +315,8 @@ export const Home: React.FC = () => {
                     onClick={() => setDifficulty(d.value)}
                   >
                     <span className={styles.difficultyName}>{d.name}</span>
-                    <span className={styles.difficultyDesc}>{d.description}</span>
+                    <span className={styles.difficultyRating}>{d.rating}</span>
+                    <span className={styles.difficultyDesc}>{d.character}</span>
                   </button>
                 ))}
               </div>
@@ -291,22 +341,35 @@ export const Home: React.FC = () => {
 
           {error && <div className={styles.error}>{error}</div>}
 
-          <Button
-            variant="primary"
-            size="large"
-            fullWidth
-            onClick={handleStartGame}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Creating Game...' : 'Start Game'}
-          </Button>
+          {/* Online Matchmaking Queue */}
+          {isOnlinePvP ? (
+            <MatchmakingQueue
+              queueState={queueState}
+              matchFound={matchFound}
+              onJoinQueue={handleJoinQueue}
+              onLeaveQueue={leaveQueue}
+              onClearMatch={clearMatchFound}
+              isConnected={lobbyConnected}
+              disabled={!isAuthenticated}
+            />
+          ) : (
+            <Button
+              variant="primary"
+              size="large"
+              fullWidth
+              onClick={handleStartGame}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Creating Game...' : 'Start Game'}
+            </Button>
+          )}
 
           {/* Game Summary */}
           <div className={styles.gameSummary}>
             <span className={styles.summaryItem}>
               {mode === 'pve'
-                ? `vs ${DIFFICULTIES.find(d => d.value === difficulty)?.description}`
-                : `vs Player (${pvpType === 'online' ? 'Ranked' : 'Local'})`}
+                ? `vs ${DIFFICULTIES.find(d => d.value === difficulty)?.character} (${DIFFICULTIES.find(d => d.value === difficulty)?.rating})`
+                : `vs Player (${pvpType === 'online_ranked' ? 'Ranked' : pvpType === 'online_unranked' ? 'Casual' : 'Local'})`}
             </span>
             <span className={styles.summaryDot}>•</span>
             <span className={styles.summaryItem}>
@@ -315,6 +378,15 @@ export const Home: React.FC = () => {
             <span className={styles.summaryDot}>•</span>
             <span className={styles.summaryItem}>{boardSize}x{boardSize}</span>
           </div>
+
+          {/* Online Players Panel (only show for authenticated users) */}
+          {isAuthenticated && (
+            <OnlinePlayersPanel
+              players={onlinePlayers}
+              count={onlineCount}
+              isConnected={lobbyConnected}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -108,6 +108,9 @@ class CreateGameSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 'difficulty': 'Difficulty must be between 1 and 4'
             })
+        # Handle legacy 'online' value (convert to 'online_ranked')
+        if data.get('pvp_type') == 'online':
+            data['pvp_type'] = GameSession.PvPType.ONLINE_RANKED
         # For PvP mode, default to local if not specified
         if data['mode'] == GameSession.GameMode.PVP and not data.get('pvp_type'):
             data['pvp_type'] = GameSession.PvPType.LOCAL
