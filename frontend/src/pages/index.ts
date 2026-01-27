@@ -1,0 +1,7 @@
+export { Home } from './Home'
+export { Game } from './Game'
+export { Login } from './Login'
+export { Register } from './Register'
+export { NotFound } from './NotFound'
+export { Leaderboard } from './Leaderboard'
+export { Profile } from './Profile'

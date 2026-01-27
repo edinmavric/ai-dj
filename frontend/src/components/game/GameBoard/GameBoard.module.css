@@ -1,0 +1,120 @@
+.boardContainer {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.board {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 0 60px rgba(138, 43, 226, 0.1);
+  aspect-ratio: 1;
+  position: relative;
+}
+
+.board::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    transparent 0%,
+    rgba(138, 43, 226, 0.05) 100%
+  );
+  pointer-events: none;
+  border-radius: 12px;
+}
+
+.board.disabled {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Waiting overlay when it's opponent's turn (not AI thinking) */
+.waitingOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.5);
+}
+
+.waitingText {
+  color: #a78bfa;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.board.aiThinking {
+  animation: boardPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes boardPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 0 60px rgba(138, 43, 226, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 0 100px rgba(255, 0, 0, 0.2);
+  }
+}
+
+.thinkingOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 16px 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 0, 0, 0.5);
+}
+
+.thinkingText {
+  color: #ff4444;
+  font-size: 1.2rem;
+  font-weight: bold;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Accessibility: Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .board.aiThinking {
+    animation: none;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 0 80px rgba(255, 0, 0, 0.15);
+  }
+
+  .thinkingText {
+    animation: none;
+  }
+}

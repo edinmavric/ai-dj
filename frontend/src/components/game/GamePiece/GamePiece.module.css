@@ -1,0 +1,102 @@
+.piece {
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  width: 70%;
+  height: 70%;
+}
+
+/* Player piece (Eleven) */
+.player {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  box-shadow:
+    0 4px 15px rgba(139, 92, 246, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.player:hover {
+  transform: scale(1.1);
+  box-shadow:
+    0 6px 25px rgba(139, 92, 246, 0.6),
+    inset 0 0 30px rgba(255, 255, 255, 0.2);
+}
+
+.player.selected {
+  animation: playerGlow 1s ease-in-out infinite;
+  transform: scale(1.1);
+}
+
+/* AI piece (Demogorgon) */
+.ai {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  box-shadow:
+    0 4px 15px rgba(220, 38, 38, 0.4),
+    inset 0 0 20px rgba(0, 0, 0, 0.3);
+  color: #1a1a1a;
+}
+
+.ai:hover {
+  transform: scale(1.05);
+}
+
+.ai .inner {
+  animation: demoGlow 2s ease-in-out infinite;
+}
+
+@keyframes playerGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 6px 25px rgba(139, 92, 246, 0.6),
+      inset 0 0 30px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 8px 35px rgba(139, 92, 246, 0.8),
+      inset 0 0 40px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes demoGlow {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+/* Entry animation */
+.piece {
+  animation: pieceAppear 0.3s ease-out;
+}
+
+@keyframes pieceAppear {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

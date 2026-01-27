@@ -1,0 +1,383 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+  background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
+}
+
+.content {
+  width: 100%;
+  max-width: 700px;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.backLink {
+  display: inline-block;
+  color: #666;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.backLink:hover {
+  color: #888;
+}
+
+.loading {
+  text-align: center;
+  color: #888;
+  padding: 100px 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  text-align: center;
+  padding: 60px 20px;
+  color: #ff6b6b;
+}
+
+.error h2 {
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.homeLink {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  border-radius: 8px;
+  color: #fff;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.homeLink:hover {
+  transform: translateY(-2px);
+}
+
+.profileCard {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #fff;
+  margin: 0 auto 16px;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+}
+
+.username {
+  font-size: 1.75rem;
+  color: #fff;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.youBadge {
+  font-size: 0.75rem;
+  background: rgba(139, 92, 246, 0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #a78bfa;
+}
+
+.joinDate {
+  color: #666;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* Game Mode Toggle (PvP/PvE) */
+.modeToggle {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.modeButton {
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #888;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.modeButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.modeButton.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(99, 102, 241, 0.3) 100%);
+  border-color: rgba(139, 92, 246, 0.6);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+}
+
+.ratingCards {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.ratingCard {
+  flex: 1;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ratingCard:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.ratingCard.active {
+  border-color: rgba(139, 92, 246, 0.5);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+}
+
+.ratingLabel {
+  display: block;
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.ratingValue {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #8b5cf6;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.statCard {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.statValue {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.statValue.wins {
+  color: #22c55e;
+}
+
+.statValue.losses {
+  color: #ef4444;
+}
+
+.statLabel {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.section {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  color: #fff;
+  margin: 0 0 20px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.emptyHistory,
+.emptyGames {
+  text-align: center;
+  color: #666;
+  padding: 32px 20px;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.historyDate {
+  flex: 1;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.historyRating {
+  font-weight: bold;
+  color: #fff;
+  margin-right: 16px;
+}
+
+.historyChange {
+  min-width: 50px;
+  text-align: right;
+  font-weight: bold;
+}
+
+.historyChange.positive {
+  color: #22c55e;
+}
+
+.historyChange.negative {
+  color: #ef4444;
+}
+
+.gamesList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gameItem {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  gap: 16px;
+}
+
+.gameResult {
+  font-weight: bold;
+  min-width: 50px;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.gameResult.win {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.gameResult.loss {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.gameResult.draw {
+  background: rgba(156, 163, 175, 0.2);
+  color: #9ca3af;
+}
+
+.gameOpponent {
+  flex: 1;
+  color: #fff;
+}
+
+.gameMode {
+  color: #888;
+  font-size: 0.875rem;
+  text-transform: capitalize;
+}
+
+.gameDate {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .ratingCards {
+    flex-direction: column;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .gameItem {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .gameOpponent {
+    order: 1;
+    flex: none;
+    width: calc(100% - 66px);
+  }
+
+  .gameMode {
+    order: 3;
+    flex: 1;
+  }
+
+  .gameDate {
+    order: 4;
+  }
+}

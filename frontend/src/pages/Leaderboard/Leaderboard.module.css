@@ -1,0 +1,340 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+  background: linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 100%);
+}
+
+.content {
+  width: 100%;
+  max-width: 800px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.backLink {
+  display: inline-block;
+  color: #666;
+  font-size: 0.875rem;
+  text-decoration: none;
+  margin-bottom: 16px;
+  transition: color 0.2s ease;
+}
+
+.backLink:hover {
+  color: #888;
+}
+
+.title {
+  font-size: 2rem;
+  color: #ff4444;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: #888;
+  margin-top: 8px;
+  letter-spacing: 2px;
+}
+
+/* Game Mode Toggle (PvP/PvE) */
+.modeToggle {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.modeButton {
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #888;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.modeButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.modeButton.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(99, 102, 241, 0.3) 100%);
+  border-color: rgba(139, 92, 246, 0.6);
+  color: #fff;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+}
+
+.tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.tab.active {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #fff;
+}
+
+.tabIcon {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+.tabLabel {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.searchContainer {
+  margin-bottom: 24px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.searchInput::placeholder {
+  color: #666;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.loading {
+  text-align: center;
+  color: #888;
+  padding: 60px 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  background: rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  border-radius: 8px;
+  padding: 12px;
+  color: #ff6b6b;
+  margin-bottom: 24px;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.tableContainer {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  color: #888;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.table td {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.row:last-child td {
+  border-bottom: none;
+}
+
+.rankCol {
+  width: 80px;
+  text-align: center;
+}
+
+.playerCol {
+  width: auto;
+}
+
+.ratingCol,
+.gamesCol,
+.winRateCol {
+  width: 100px;
+  text-align: center;
+}
+
+.rank {
+  text-align: center;
+  font-weight: bold;
+}
+
+.rank.gold {
+  color: #ffd700;
+}
+
+.rank.silver {
+  color: #c0c0c0;
+}
+
+.rank.bronze {
+  color: #cd7f32;
+}
+
+.medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.875rem;
+}
+
+.gold .medal {
+  background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%);
+  color: #000;
+}
+
+.silver .medal {
+  background: linear-gradient(135deg, #e0e0e0 0%, #a0a0a0 100%);
+  color: #000;
+}
+
+.bronze .medal {
+  background: linear-gradient(135deg, #cd7f32 0%, #a05a20 100%);
+  color: #000;
+}
+
+.player {
+  font-weight: 500;
+}
+
+.playerLink {
+  color: #8b5cf6;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.playerLink:hover {
+  color: #a78bfa;
+  text-decoration: underline;
+}
+
+.rating {
+  text-align: center;
+  font-weight: bold;
+  color: #8b5cf6;
+}
+
+.games,
+.winRate {
+  text-align: center;
+  color: #888;
+}
+
+.noResults {
+  text-align: center;
+  color: #666;
+  padding: 40px 20px !important;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .tabs {
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 10px 16px;
+  }
+
+  .table th,
+  .table td {
+    padding: 12px 8px;
+    font-size: 0.875rem;
+  }
+
+  .gamesCol,
+  .games {
+    display: none;
+  }
+
+  .medal {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
+}

@@ -1,0 +1,28 @@
+# Django
+Django>=5.0,<6.0
+djangorestframework>=3.14,<4.0
+djangorestframework-simplejwt>=5.3,<6.0
+django-cors-headers>=4.3,<5.0
+
+# Image processing (avatars)
+Pillow>=10.0,<11.0
+
+# Django Channels (WebSocket)
+channels>=4.0,<5.0
+channels-redis>=4.2,<5.0
+daphne>=4.1,<5.0
+
+# Database
+psycopg2-binary>=2.9,<3.0
+
+# Environment
+python-dotenv>=1.0,<2.0
+
+# Utils
+uuid>=1.30
+
+# Development
+pytest>=8.0
+pytest-django>=4.8
+pytest-asyncio>=0.23
+ruff>=0.4
