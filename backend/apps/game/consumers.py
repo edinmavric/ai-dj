@@ -49,6 +49,11 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'game_state',
                 'data': game_state
             })
+
+            # Start clock if it should be running
+            # This handles reconnections where game is in progress
+            if game_state.get('clock_running'):
+                await self.start_clock()
         else:
             await self.send_json({
                 'type': 'error',
@@ -180,53 +185,66 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
     async def trigger_ai_move(self):
         """Trigger AI to make a move."""
-        await asyncio.sleep(0.5)  # Small delay for UX
+        try:
+            await asyncio.sleep(0.5)  # Small delay for UX
 
-        # Stop clock during AI calculation
-        await self.stop_clock()
+            # Don't stop clock - AI time should run while calculating
+            # The clock will automatically detect timeout if AI runs out of time
 
-        ai_result = await self.calculate_ai_move()
+            ai_result = await self.calculate_ai_move()
 
-        if ai_result['success']:
-            # Broadcast AI move
-            await self.channel_layer.group_send(
-                self.room_group_name,
-                {
-                    'type': 'ai_move',
-                    'data': {
-                        'move': ai_result['move'],
-                        'game_state': ai_result['game_state'],
-                        'stats': ai_result.get('stats', {}),
-                        'player_one_time_ms': ai_result.get('player_one_time_ms'),
-                        'player_two_time_ms': ai_result.get('player_two_time_ms'),
-                        'clock_running': ai_result.get('clock_running', False)
-                    }
-                }
-            )
+            # Check if AI timed out during calculation
+            if not ai_result['success']:
+                if ai_result.get('timed_out'):
+                    logger.info(f"AI timed out in game {self.game_id}")
+                    await self.handle_timeout(2)  # AI (player 2) timed out
+                else:
+                    logger.warning(f"AI move failed in game {self.game_id}: {ai_result.get('message')}")
+                # else: game was already ended by clock task or other error
+                return
 
-            # Start clock for player if game continues
-            if ai_result.get('clock_running'):
-                await self.start_clock()
-
-            # Check if game is over
-            if ai_result.get('game_over'):
-                # Determine the reason for game over
-                reason = 'no_moves'  # Default: opponent has no valid moves
-                if ai_result.get('captured_all'):
-                    reason = 'capture'  # All pieces captured
-
+            if ai_result['success']:
+                # Broadcast AI move
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
-                        'type': 'game_over',
+                        'type': 'ai_move',
                         'data': {
-                            'winner': ai_result.get('winner'),
-                            'ai_won': ai_result.get('ai_won', False),
-                            'reason': reason,
-                            'rating_changes': ai_result.get('rating_changes')
+                            'move': ai_result['move'],
+                            'game_state': ai_result['game_state'],
+                            'stats': ai_result.get('stats', {}),
+                            'player_one_time_ms': ai_result.get('player_one_time_ms'),
+                            'player_two_time_ms': ai_result.get('player_two_time_ms'),
+                            'clock_running': ai_result.get('clock_running', False)
                         }
                     }
                 )
+
+                # Start clock for player if game continues
+                if ai_result.get('clock_running'):
+                    await self.start_clock()
+
+                # Check if game is over
+                if ai_result.get('game_over'):
+                    # Determine the reason for game over
+                    reason = 'no_moves'  # Default: opponent has no valid moves
+                    if ai_result.get('captured_all'):
+                        reason = 'capture'  # All pieces captured
+
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            'type': 'game_over',
+                            'data': {
+                                'winner': ai_result.get('winner'),
+                                'ai_won': ai_result.get('ai_won', False),
+                                'reason': reason,
+                                'rating_changes': ai_result.get('rating_changes')
+                            }
+                        }
+                    )
+        except Exception as e:
+            logger.error(f"Error in trigger_ai_move for game {self.game_id}: {e}", exc_info=True)
 
     async def handle_request_state(self, data: Dict[str, Any]):
         """Send current game state."""
@@ -235,6 +253,10 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
             'type': 'game_state',
             'data': game_state
         })
+
+        # Start clock if it should be running (handles reconnection case)
+        if game_state and game_state.get('clock_running'):
+            await self.start_clock()
 
     async def handle_forfeit(self, data: Dict[str, Any]):
         """Handle player forfeit."""
@@ -559,40 +581,53 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
     def process_timeout(self, timed_out_player: int) -> Dict:
         """Process timeout - end game."""
         try:
-            game = GameSession.objects.get(id=self.game_id)
+            with transaction.atomic():
+                # Lock the game row to prevent race conditions with AI move calculation
+                game = GameSession.objects.select_for_update().get(id=self.game_id)
 
-            game.status = GameSession.GameStatus.COMPLETED
-            game.completed_at = timezone.now()
-            game.clock_running = False
+                # Check if game is still in progress
+                if game.status != GameSession.GameStatus.IN_PROGRESS:
+                    return {'winner_id': None, 'reason': 'already_ended'}
 
-            winner_id = None
-            ai_won = False
+                game.status = GameSession.GameStatus.COMPLETED
+                game.completed_at = timezone.now()
+                game.clock_running = False
 
-            if timed_out_player == 1:
-                # Player 1 timed out, player 2 wins
-                if game.mode == GameSession.GameMode.PVE:
-                    game.ai_won = True
-                    ai_won = True
+                # Update game state to reflect timeout
+                state = GameState.from_dict(game.game_state)
+                state.phase = GamePhase.FINISHED
+
+                winner_id = None
+                ai_won = False
+
+                if timed_out_player == 1:
+                    # Player 1 timed out, player 2 wins
+                    state.winner = PieceType.PLAYER_TWO
+                    if game.mode == GameSession.GameMode.PVE:
+                        game.ai_won = True
+                        ai_won = True
+                    else:
+                        game.winner = game.player_two
+                        winner_id = str(game.player_two.id) if game.player_two else None
                 else:
-                    game.winner = game.player_two
-                    winner_id = str(game.player_two.id) if game.player_two else None
-            else:
-                # Player 2 timed out, player 1 wins
-                game.winner = game.player_one
-                winner_id = str(game.player_one.id) if game.player_one else None
+                    # Player 2 timed out, player 1 wins
+                    state.winner = PieceType.PLAYER_ONE
+                    game.winner = game.player_one
+                    winner_id = str(game.player_one.id) if game.player_one else None
 
-            game.save()
+                game.game_state = state.to_dict()
+                game.save()
 
-            # Update ELO ratings for PvP games
-            rating_changes = update_ratings_for_game(game)
+                # Update ELO ratings for PvP games
+                rating_changes = update_ratings_for_game(game)
 
-            return {
-                'winner_id': winner_id,
-                'ai_won': ai_won,
-                'reason': 'timeout',
-                'timed_out_player': timed_out_player,
-                'rating_changes': rating_changes
-            }
+                return {
+                    'winner_id': winner_id,
+                    'ai_won': ai_won,
+                    'reason': 'timeout',
+                    'timed_out_player': timed_out_player,
+                    'rating_changes': rating_changes
+                }
         except GameSession.DoesNotExist:
             return {'winner_id': None, 'reason': 'game_not_found'}
 
@@ -727,17 +762,20 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
                 state = GameState.from_dict(game.game_state)
 
-                # Handle time control - stop AI clock
+                # Handle time control - check if AI has timed out
                 has_time_control = game.time_control != 'unlimited' and game.player_two_time_ms is not None
                 player_one_time = game.player_one_time_ms
                 player_two_time = game.player_two_time_ms
 
+                # Calculate elapsed time for AI (player 2) and check for timeout
+                calculation_start_time = timezone.now()
                 if has_time_control and game.clock_running and game.last_move_timestamp:
-                    elapsed_ms = int((timezone.now() - game.last_move_timestamp).total_seconds() * 1000)
+                    elapsed_ms = int((calculation_start_time - game.last_move_timestamp).total_seconds() * 1000)
                     player_two_time = max(0, player_two_time - elapsed_ms)
-                    # Add increment for AI
-                    player_two_time += game.increment_seconds * 1000
-                    game.player_two_time_ms = player_two_time
+
+                    # If AI ran out of time, don't make a move
+                    if player_two_time <= 0:
+                        return {'success': False, 'timed_out': True}
 
                 # Get AI based on difficulty
                 ai = AIFactory.create_by_difficulty(game.difficulty)
@@ -745,6 +783,14 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
 
                 if not ai_move:
                     return {'success': False, 'message': 'AI could not find a move'}
+
+                # Re-check timeout before applying move (in case AI calculation took a long time)
+                if has_time_control and game.clock_running:
+                    # Calculate ADDITIONAL time spent during AI calculation
+                    additional_time_ms = int((timezone.now() - calculation_start_time).total_seconds() * 1000)
+                    player_two_time = max(0, player_two_time - additional_time_ms)
+                    if player_two_time <= 0:
+                        return {'success': False, 'timed_out': True}
 
                 # Validate AI move to prevent corrupted game state
                 if not GameRules.is_valid_move(state, ai_move):
@@ -798,8 +844,12 @@ class GameConsumer(AsyncJsonWebsocketConsumer):
                     else:
                         game.winner = game.player_one
                 else:
-                    # Start clock for player 1
+                    # Update AI time with increment (after move is complete)
                     if has_time_control:
+                        # AI time was already reduced by elapsed time, now add increment
+                        player_two_time += game.increment_seconds * 1000
+                        game.player_two_time_ms = player_two_time
+                        # Start clock for player 1
                         game.last_move_timestamp = timezone.now()
                         game.clock_running = True
 

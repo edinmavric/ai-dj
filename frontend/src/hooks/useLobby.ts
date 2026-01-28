@@ -58,50 +58,51 @@ export function useLobby(autoConnect = true): UseLobbyReturn {
         return
       }
 
+      // Set up event handlers first
+      unsubscribesRef.current = [
+        lobbyClient.onConnectionChange((connected) => {
+          setIsConnected(connected)
+        }),
+        lobbyClient.on('online_players', (data) => {
+          const playersData = data as OnlinePlayersData
+          setOnlinePlayers(playersData.players)
+          setOnlineCount(playersData.count)
+        }),
+        lobbyClient.on('queue_joined', (data) => {
+          const queueData = data as QueueJoinedData
+          setQueueState({
+            inQueue: true,
+            queueType: queueData.queue_type,
+            position: queueData.position,
+            playersWaiting: queueData.players_waiting,
+          })
+        }),
+        lobbyClient.on('queue_left', () => {
+          setQueueState({
+            inQueue: false,
+            queueType: null,
+            position: 0,
+            playersWaiting: 0,
+          })
+        }),
+        lobbyClient.on('match_found', (data) => {
+          const matchData = data as MatchFoundData
+          setMatchFound(matchData)
+          setQueueState({
+            inQueue: false,
+            queueType: null,
+            position: 0,
+            playersWaiting: 0,
+          })
+        }),
+      ]
+
+      // Then connect (automatic retry on failure)
       try {
         await lobbyClient.connect()
-
-        unsubscribesRef.current = [
-          lobbyClient.onConnectionChange((connected) => {
-            setIsConnected(connected)
-          }),
-          lobbyClient.on('online_players', (data) => {
-            const playersData = data as OnlinePlayersData
-            setOnlinePlayers(playersData.players)
-            setOnlineCount(playersData.count)
-          }),
-          lobbyClient.on('queue_joined', (data) => {
-            const queueData = data as QueueJoinedData
-            setQueueState({
-              inQueue: true,
-              queueType: queueData.queue_type,
-              position: queueData.position,
-              playersWaiting: queueData.players_waiting,
-            })
-          }),
-          lobbyClient.on('queue_left', () => {
-            setQueueState({
-              inQueue: false,
-              queueType: null,
-              position: 0,
-              playersWaiting: 0,
-            })
-          }),
-          lobbyClient.on('match_found', (data) => {
-            const matchData = data as MatchFoundData
-            setMatchFound(matchData)
-            setQueueState({
-              inQueue: false,
-              queueType: null,
-              position: 0,
-              playersWaiting: 0,
-            })
-          }),
-        ]
-
-        setIsConnected(true)
       } catch (error) {
-        console.error('Failed to connect to lobby:', error)
+        // Connection failed but will auto-retry, just log it
+        console.log('Lobby: Initial connection failed, retrying...')
         setIsConnected(false)
       }
     }

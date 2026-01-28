@@ -39,7 +39,7 @@ class BaseAI(ABC):
         """
         # Check for blunder (random move)
         if self.blunder_chance > 0 and random.random() < self.blunder_chance:
-            valid_moves = GameRules.get_valid_moves(state, state.current_player)
+            valid_moves = GameRules.get_valid_moves(state)
             if valid_moves:
                 return random.choice(valid_moves)
             return None

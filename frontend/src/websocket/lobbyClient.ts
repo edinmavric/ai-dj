@@ -62,7 +62,6 @@ class LobbyWebSocketClient {
           console.warn('Failed to parse auth tokens')
         }
       }
-      console.log('Lobby token exists:', !!token)
 
       if (!token) {
         console.warn('No access token found for lobby connection')
@@ -72,10 +71,19 @@ class LobbyWebSocketClient {
 
       const wsUrl = `${wsProtocol}//${host}/ws/lobby/?token=${token}`
 
-      console.log('Connecting to Lobby WebSocket:', wsUrl.replace(/token=.*/, 'token=***'))
+      console.log('Connecting to Lobby WebSocket...')
       this.ws = new WebSocket(wsUrl)
 
+      // Set a connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
+          console.log('Lobby connection timeout, will retry...')
+          this.ws.close()
+        }
+      }, 5000)
+
       this.ws.onopen = () => {
+        clearTimeout(connectionTimeout)
         console.log('Lobby WebSocket connected')
         this.reconnectAttempts = 0
         this.notifyConnectionChange(true)
@@ -92,16 +100,25 @@ class LobbyWebSocketClient {
       }
 
       this.ws.onerror = (error) => {
-        console.error('Lobby WebSocket error:', error)
-        if (this.reconnectAttempts === 0) {
-          reject(error)
-        }
+        clearTimeout(connectionTimeout)
+        console.warn('Lobby WebSocket error, will retry...')
+        // Don't reject - let reconnection handle it
       }
 
       this.ws.onclose = () => {
-        console.log('Lobby WebSocket closed')
+        clearTimeout(connectionTimeout)
         this.notifyConnectionChange(false)
-        if (!this.intentionalDisconnect) {
+
+        // Only reject if it's the initial connection and we haven't resolved yet
+        if (this.reconnectAttempts === 0 && this.ws?.readyState !== WebSocket.OPEN) {
+          // Give it one automatic retry before rejecting
+          setTimeout(() => {
+            if (!this.intentionalDisconnect && this.reconnectAttempts === 0) {
+              console.log('Retrying lobby connection...')
+              this.attemptReconnect()
+            }
+          }, 100)
+        } else if (!this.intentionalDisconnect) {
           this.attemptReconnect()
         }
       }
