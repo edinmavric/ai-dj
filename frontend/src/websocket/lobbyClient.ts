@@ -51,9 +51,26 @@ class LobbyWebSocketClient {
       const host = import.meta.env.VITE_WS_HOST || window.location.host
 
       // Include JWT token in query string for authentication
-      const token = localStorage.getItem('access_token')
-      const tokenParam = token ? `?token=${token}` : ''
-      const wsUrl = `${wsProtocol}//${host}/ws/lobby/${tokenParam}`
+      // Tokens are stored as JSON under 'auth_tokens' key
+      const storedTokens = localStorage.getItem('auth_tokens')
+      let token: string | null = null
+      if (storedTokens) {
+        try {
+          const parsed = JSON.parse(storedTokens)
+          token = parsed.access || null
+        } catch {
+          console.warn('Failed to parse auth tokens')
+        }
+      }
+      console.log('Lobby token exists:', !!token)
+
+      if (!token) {
+        console.warn('No access token found for lobby connection')
+        reject(new Error('No auth token'))
+        return
+      }
+
+      const wsUrl = `${wsProtocol}//${host}/ws/lobby/?token=${token}`
 
       console.log('Connecting to Lobby WebSocket:', wsUrl.replace(/token=.*/, 'token=***'))
       this.ws = new WebSocket(wsUrl)

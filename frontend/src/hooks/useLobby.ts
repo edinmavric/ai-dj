@@ -40,6 +40,24 @@ export function useLobby(autoConnect = true): UseLobbyReturn {
     if (!autoConnect) return
 
     const connectAndSubscribe = async () => {
+      // Check for auth token before attempting connection
+      // Tokens are stored as JSON under 'auth_tokens' key
+      const storedTokens = localStorage.getItem('auth_tokens')
+      let hasToken = false
+      if (storedTokens) {
+        try {
+          const parsed = JSON.parse(storedTokens)
+          hasToken = !!parsed.access
+        } catch {
+          // Invalid JSON
+        }
+      }
+      if (!hasToken) {
+        console.log('Lobby: Not connecting - no auth token')
+        setIsConnected(false)
+        return
+      }
+
       try {
         await lobbyClient.connect()
 

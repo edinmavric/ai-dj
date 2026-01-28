@@ -12,6 +12,7 @@ interface ReplayControlsProps {
   onLast: () => void
   onSeek: (index: number) => void
   onExit: () => void
+  onHome?: () => void
 }
 
 export const ReplayControls: React.FC<ReplayControlsProps> = ({
@@ -25,6 +26,7 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
   onLast,
   onSeek,
   onExit,
+  onHome,
 }) => {
   const sliderRef = useRef<HTMLInputElement>(null)
 
@@ -80,10 +82,17 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <span className={styles.title}>Replay Mode</span>
-        <button className={styles.exitButton} onClick={onExit}>
-          Exit Replay
-        </button>
+        <span className={styles.title}>REPLAY MODE</span>
+        <div className={styles.headerButtons}>
+          <button className={styles.exitButton} onClick={onExit}>
+            Exit Replay
+          </button>
+          {onHome && (
+            <button className={styles.homeButton} onClick={onHome}>
+              Main Menu
+            </button>
+          )}
+        </div>
       </div>
 
       <div className={styles.controls}>

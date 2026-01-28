@@ -81,6 +81,7 @@ export interface GameRecord {
   player_two: { id: string; username: string } | null
   winner: { id: string; username: string } | null
   mode: 'pve' | 'pvp'
+  pvp_type: 'local' | 'online_ranked' | 'online_unranked' | null
   time_control: string
   ai_won: boolean
   completed_at: string

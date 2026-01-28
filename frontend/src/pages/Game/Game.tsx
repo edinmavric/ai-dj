@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from 'react'
+import React, { useEffect, useMemo, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { GameBoard, GameStatus, GameClock, CapturedPieces, MoveHistoryPanel, ChatPanel, ReplayControls, GameOverOverlay } from '../../components/game'
 import { ConnectionBanner } from '../../components/common'
@@ -121,6 +121,41 @@ export const Game: React.FC = () => {
     }
   }, [gameState, replayState.isActive, replayBoard])
 
+  // Track if game was already finished when first loaded (historical game)
+  const initialLoadCheckedRef = useRef(false)
+  const wasFinishedOnLoadRef = useRef(false)
+
+  // Auto-enter replay mode ONLY for historical games (loaded from match history)
+  // Don't auto-enter for games that just finished live - show Game Over overlay first
+  useEffect(() => {
+    if (!gameState) return
+
+    // On first valid game state, check if it was already finished
+    if (!initialLoadCheckedRef.current) {
+      initialLoadCheckedRef.current = true
+      if (gameState.phase === 'finished') {
+        wasFinishedOnLoadRef.current = true
+        // Auto-enter replay for historical games
+        if (gameState.move_history && gameState.move_history.length > 0) {
+          enterReplayMode()
+        }
+      }
+      return
+    }
+
+    // For subsequent updates, only auto-enter if it was a historical game
+    // and we're not already in replay mode
+    if (
+      wasFinishedOnLoadRef.current &&
+      gameState.phase === 'finished' &&
+      !replayState.isActive &&
+      gameState.move_history &&
+      gameState.move_history.length > 0
+    ) {
+      enterReplayMode()
+    }
+  }, [gameState, replayState.isActive, enterReplayMode])
+
   // Navigate to new game when rematch is created/accepted
   useEffect(() => {
     if (rematch.newGameId) {
@@ -210,12 +245,12 @@ export const Game: React.FC = () => {
 
           <GameBoard
             gameState={displayGameState!}
-            onCellClick={replayState.isActive ? undefined : selectPosition}
-            selectedPosition={replayState.isActive ? null : selectedPosition}
-            validMoves={replayState.isActive ? [] : validMoves}
-            isPlayerTurn={replayState.isActive ? false : isPlayerTurn}
+            onCellClick={replayState.isActive || gameState?.phase === 'finished' ? undefined : selectPosition}
+            selectedPosition={replayState.isActive || gameState?.phase === 'finished' ? null : selectedPosition}
+            validMoves={replayState.isActive || gameState?.phase === 'finished' ? [] : validMoves}
+            isPlayerTurn={replayState.isActive || gameState?.phase === 'finished' ? false : isPlayerTurn}
             aiThinking={aiThinking}
-            disableOverlays={replayState.isActive || !!gameOver}
+            disableOverlays={replayState.isActive || !!gameOver || gameState?.phase === 'finished'}
             isLocalPvP={gameMode === 'pvp' && pvpType === 'local'}
           />
 
@@ -270,6 +305,7 @@ export const Game: React.FC = () => {
               onLast={replayLast}
               onSeek={replayGoTo}
               onExit={exitReplayMode}
+              onHome={handleNewGame}
             />
           ) : (
             gameOver && gameState.move_history.length > 0 && (

@@ -126,7 +126,7 @@ export const GameStatus: React.FC<GameStatusProps> = ({
       </div>
 
       {/* Actions - hide during game over (overlay handles it) */}
-      {!gameOver && (
+      {!gameOver && gameState.phase !== 'finished' && (
         <div className={styles.actions}>
           {onForfeit && !isLocalPvP && (
             <button className={styles.forfeitButton} onClick={onForfeit}>

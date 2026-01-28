@@ -271,6 +271,16 @@ export function useGame({ gameId, playerId: _playerId }: UseGameOptions): UseGam
     // Only show AI thinking in PvE mode
     const isPvE = mode === 'pve'
     setAiThinkingDebounced(isPvE && msg.game_state.current_player === 2 && msg.game_state.phase === 'playing')
+
+    // Set gameOver immediately if game is already finished (loading from history)
+    if (msg.game_state.phase === 'finished') {
+      setGameOver({
+        winner: msg.game_state.winner || null,
+        ai_won: mode === 'pve' && msg.game_state.winner === 2,
+        reason: 'Game completed',
+        rating_changes: null, // Historical games don't show rating changes
+      })
+    }
   }, [setAiThinkingDebounced])
 
   const handleGameUpdate = useCallback(
@@ -554,10 +564,11 @@ export function useGame({ gameId, playerId: _playerId }: UseGameOptions): UseGam
 
       const piece = gameState.board.grid[position.row][position.col]
 
-      if (piece === 1) {
-        // Select own piece
+      const currentPlayer = gameState.current_player
+      if (piece === currentPlayer) {
+        // Select current player's piece
         setSelectedPosition(position)
-        const moves = calculateValidMoves(gameState.board, position, 1)
+        const moves = calculateValidMoves(gameState.board, position, currentPlayer)
         setValidMoves(moves)
         playSound('click')
       } else if (selectedPosition && validMoves.length > 0) {

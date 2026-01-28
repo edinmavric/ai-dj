@@ -1,10 +1,13 @@
 """
 Custom middleware for WebSocket JWT authentication.
 """
+import logging
 from urllib.parse import parse_qs
 from channels.db import database_sync_to_async
 from channels.middleware import BaseMiddleware
 from django.contrib.auth.models import AnonymousUser
+
+logger = logging.getLogger(__name__)
 
 
 @database_sync_to_async
@@ -20,8 +23,10 @@ def get_user_from_token(token):
         access_token = AccessToken(token)
         user_id = access_token['user_id']
         user = User.objects.get(id=user_id)
+        logger.info(f"JWT auth success for user {user_id}")
         return user
-    except Exception:
+    except Exception as e:
+        logger.warning(f"JWT auth failed: {e}")
         return AnonymousUser()
 
 

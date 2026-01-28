@@ -268,9 +268,11 @@ export const Profile: React.FC = () => {
                 const opponent =
                   game.mode === 'pve'
                     ? 'AI'
+                    : game.pvp_type === 'local'
+                    ? 'Local Game'
                     : game.player_one?.id === userId
-                    ? game.player_two?.username || 'Unknown'
-                    : game.player_one?.username || 'Unknown'
+                    ? game.player_two?.username || 'Player 2'
+                    : game.player_one?.username || 'Player 1'
 
                 return (
                   <div key={game.id} className={styles.gameItem}>
